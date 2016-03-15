@@ -45,17 +45,18 @@ findCorrelation(cor(model.train.PC),cutoff = .8)
 
 ########
 trCont<-trainControl(method="cv",allowParallel=TRUE)
-cl <- makeCluster(detectCores())
+cl <- makeCluster((detectCores()-1))
 registerDoParallel(cl)
 
 startTime<-Sys.time()
-rfModelFit<-train(model.training$classe ~ ., data=model.train.PC, method="parRF", prox=TRUE, trControl=trCont,tuneGrid=expand.grid(mtry = 10),number=3,ntree=500,do.trace=TRUE)
+rfModelFit<-train(model.training$classe ~ ., data=model.train.PC, method="parRF", prox=TRUE, trControl=trCont,tuneGrid=expand.grid(mtry = 10),number=3,ntree=100)
 endTime<-Sys.time()
 
 stopCluster(cl)
 
 print(endTime-startTime,digit=3) ##showing execution time
 print(rfModelFit$finalModel,digits=3)
+
 
 mode.testing.predict<-predict(rfModelFit,model.testing.PC)
 #============

@@ -29,9 +29,8 @@ to build our model we have used following:
 We will first load the data from the given url and then will do some data cleansing. That means, we will remove the columns which are not related to training and prediction from both  train and test dataset. afterwards we will remove the columns which do not have any value or have near zero variance. Finally we have 52 features to predict the category "classe".
 ```{r loadData,cache=TRUE,echo=TRUE,results='hide'}
 ###Loading required packages###
-library(caret)
-library(randomForest)
-require(doMC)
+require(caret)
+require(randomForest)
 set.seed(123) 
 
 ### downloading the training and testing set from the url provided by course project
@@ -96,24 +95,16 @@ Due to high accuracy of the random forest algorithm for classification problems,
 We have also used cross-validation to have better accuracy for the prediction. 
 Why i chosed 10? why not 5, since we have 5 groups.
 
-```{r model,cache=TRUE}
-#registerDoMC(cores = (detectCores())) # to do parallel computation
-
-trCont<-trainControl(method="cv",allowParallel=TRUE)
-cl <- makeCluster(detectCores())
-registerDoParallel(cl)
+```{r model,cache=TRUE,results="hide"}
+trCont<-trainControl(method="cv")
 
 startTime<-Sys.time()
-rfModelFit<-train(model.training$classe ~ ., data=model.train.PC, method="parRF", prox=TRUE, trControl=trCont,tuneGrid=expand.grid(mtry = 10),number=3,ntree=500,do.trace=TRUE)
+
+rfModelFit<-train(model.training$classe ~ ., data=model.train.PC, method="rf", prox=TRUE, trControl=trCont,tuneGrid=expand.grid(mtry = 10),number=3,ntree=100) ## fitting the model
+
 endTime<-Sys.time()
 
-stopCluster(cl)
-
-print(endTime-startTime,digit=3) ##showing execution time
-print(rfModelFit$finalModel,digits=3)
-
 mode.testing.predict<-predict(rfModelFit,model.testing.PC)
-
 
 ```
 
@@ -121,6 +112,8 @@ mode.testing.predict<-predict(rfModelFit,model.testing.PC)
 ##Results  
 Now we can see accuracy of our model:
 ```{r final,cache=TRUE}
+print(endTime-startTime,digit=3) ##showing execution time
+print(rfModelFit$finalModel,digits=3)##showing final model
 confMatrix<-confusionMatrix(model.testing$classe,mode.testing.predict);print(confMatrix,digits=3)
 ```
 
@@ -131,17 +124,8 @@ Regarding *out of sample error* we can sure achieve better accuracy and less err
 At this point i am satisfied with the result.
 
 ##Test (Quiz)
-TO answer course project quiz, we will use the final model to predict the validation-set.
+To answer course project quiz, we will use the final model to predict the validation-set.
 ```{r predictValidation,cache=TRUE}
 validation.PC<-predict(model.train.preProc,prPro.validation) ## first we pre-process our validation set to apply pca.
 predict(rfModelFit,validation.PC)
 ```
-
-> trContro<-trainControl(method = "cv")
-> trControl<-trainControl(method = "cv")
-> cl <- makeCluster(detectCores())
-> registerDoParallel(cl)
-> rfModelFit<-train(model.training$classe ~ ., data=model.train.PC, method="rf", prox=TRUE, trControl = trControl,number=5,ntree=500)
-rfModelFit<-train(model.training$classe ~ ., data=model.train.PC, method="rf", prox=TRUE, trControl = trControl,number=5,ntree=500)
-
-
