@@ -97,16 +97,23 @@ We have also used cross-validation to have better accuracy for the prediction.
 Why i chosed 10? why not 5, since we have 5 groups.
 
 ```{r model,cache=TRUE}
-registerDoMC(cores = (detectCores())) # to do parallel computation
+#registerDoMC(cores = (detectCores())) # to do parallel computation
+
+trCont<-trainControl(method="cv",allowParallel=TRUE)
+cl <- makeCluster(detectCores())
+registerDoParallel(cl)
 
 startTime<-Sys.time()
-rfModelFit<-train(model.training$classe ~ ., data=model.train.PC, method="rf", prox=TRUE, trControl=trainControl(method="cv",allowParallel=TRUE,),tuneGrid=expand.grid(mtry = 10),number=3,ntree=500,do.trace=TRUE)
+rfModelFit<-train(model.training$classe ~ ., data=model.train.PC, method="parRF", prox=TRUE, trControl=trCont,tuneGrid=expand.grid(mtry = 10),number=3,ntree=500,do.trace=TRUE)
 endTime<-Sys.time()
+
+stopCluster(cl)
 
 print(endTime-startTime,digit=3) ##showing execution time
 print(rfModelFit$finalModel,digits=3)
 
 mode.testing.predict<-predict(rfModelFit,model.testing.PC)
+
 
 ```
 
