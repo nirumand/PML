@@ -8,7 +8,6 @@ input.train.obswithData<-input.train[!notNullRecords,] # identifing observations
 
 ###Loading required packages###
 library(caret)
-library(rpart)
 library(randomForest)
 
 set.seed(123)
@@ -44,4 +43,11 @@ model.testing<-prPro.train[-inTrain,]
 
 
 #Build model
-rf<-train(classe ~ ., data=model.training, method="rf", prox=TRUE, ntree=500)
+model.train.preProc<-preProcess(model.training[,-53],method=c("scale","center","pca"),pcaComp=20)
+model.train.PC<-predict(model.train.preProc,model.training[,-53])
+rfModelFit<-train(model.training$classe ~ ., data=model.train.PC, method="rf", prox=TRUE, trControl = trainControl(method="cv"),number=10,ntree=500)
+
+
+rf<-train(classe ~ ., data=model.training, method="rf", prox=TRUE, trControl = trainControl(method="cv"),number=10,ntree=500)
+
+

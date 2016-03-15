@@ -40,7 +40,7 @@ model.testing<-prPro.train[-inTrain,]
 model.train.preProc<-preProcess(model.training[,-53],method=c("scale","center","pca"))
 model.train.PC<-predict(model.train.preProc,model.training[,-53])
 
-rfModelFit<-train(model.training$classe ~ ., data=model.train.PC, method="rf", prox=TRUE, trControl = trainControl(method="cv"),number=10,ntree=500,do.trace=TRUE)
+rfModelFit<-train(model.training$classe ~ ., data=model.train.PC, method="rf", prox=TRUE, trControl = trainControl(method="cv"),number=10,ntree=500)
 
 model.testing.PC<-predict(model.train.preProc,model.testing[-53])
 
@@ -49,5 +49,9 @@ confMatrix<-confusionMatrix(model.testing$classe,predict(rfModelFit,model.testin
 
 confMatrix
 
+> prPro.validation <-g.test[notNaColumns[notNaColumns!="classe"]]
+> validation.PC<-predict(model.train.preProc,prPro.validation)
+> predict(rfModelFit,validation.PC)
+[1] B A C A A E D B A A B C B A E E A B B B
 
 

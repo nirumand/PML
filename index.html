@@ -116,6 +116,51 @@ $(document).ready(function () {
 </div>
 
 
+<div id="summary" class="section level2">
+<h2>Summary,</h2>
+</div>
+<div id="data" class="section level2">
+<h2>Data</h2>
+<p>The data which is provided by the assignment (<a href="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv">Train set</a> and <a href="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv">Test set</a>)for this project comes originaly from following <a href="http://groupware.les.inf.puc-rio.br/har">paper</a>:<br />
+<em>Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. Qualitative Activity Recognition of Weight Lifting Exercises. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human ’13) . Stuttgart, Germany: ACM SIGCHI, 2013.</em></p>
+<div id="envirnoment-and-data-prepration" class="section level3">
+<h3>Envirnoment and Data prepration</h3>
+<p>We will first load the data from the given url and then will do some data cleansing:</p>
+<pre class="r"><code>###Loading required packages###
+library(caret)
+library(rpart)
+
+### downloading the training and testing set 
+if(!file.exists(&quot;pml-training.csv&quot;)) 
+{   download.file(url=&quot;https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv&quot;,destfile =&quot;pml-training.csv&quot;)}
+if(!file.exists(&quot;pml-testing.csv&quot;))
+{   download.file(url=&quot;https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv&quot;,destfile =&quot;pml-testing.csv&quot;)}
+  
+### importing the downloaded files
+input.train&lt;-read.csv(&quot;pml-training.csv&quot;)
+input.test&lt;-read.csv(&quot;pml-testing.csv&quot;)</code></pre>
+</div>
+<div id="spliting-dataset" class="section level3">
+<h3>Spliting dataset</h3>
+<p>how you used cross validation, ###Explatory Analysis</p>
+</div>
+</div>
+<div id="model-building" class="section level2">
+<h2>Model Building</h2>
+<p>Here i will explain how i built your model.</p>
+<p>question-&gt;data-&gt;feature-&gt;algorithms</p>
+</div>
+<div id="results" class="section level2">
+<h2>Results</h2>
+<p>You will also use your prediction model to predict 20 different test cases. what you think the expected out of sample error is, and why you made the choices you did. out of sample error = error resulted from applying your prediction algorithm to a new data set – also known as generalization error – out of sample error most important as it better evaluates how the model should perform</p>
+<p>Problems: Since the number of test cases in Test set by the assignment is too low, there could be some accurace problem with the prediction. So to avoid that, i will split my trainning data set to two data set (70% Trainning and 30% test set) and will consider the test set provided by the assignment as the validation set. generalization error</p>
+<div id="error-measures-and-explanation" class="section level3">
+<h3>Error measures and explanation</h3>
+</div>
+</div>
+<div id="section" class="section level2">
+<h2>——————————-</h2>
+</div>
 <div id="r-markdown" class="section level2">
 <h2>R Markdown</h2>
 <p>This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <a href="http://rmarkdown.rstudio.com" class="uri">http://rmarkdown.rstudio.com</a>.</p>

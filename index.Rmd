@@ -1,0 +1,117 @@
+---
+title: "Practical Machine Learning Course Project"
+author: "Reza Nirumand"
+date: "March 12, 2016"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##Summary  
+In this Project we will try to predict if a given activity at a specific time is correctly done according. For the classification the the original authours have considered 5 groups A,B,C,D,E which corresponds to the way of doing a specific activity. To build and test the model, we have splited the provided training set to 70%training set and 30% test set. Before we train the model we have used *PCA* to reduce the number of features.Then We have trained and built the model using the new pre-processed training and random forest algorithm. Finally we have predicted the classe of the activity (A,...,E) for the test set. The Achieved Accuracy for predicting the test set is 97% which is acceptable for the purpose of this project. We could push it further by tuning the parameter to achieve more accuracy but due to lack of a powerfull hardware we will accept current model as final model.
+
+##Data
+The data which is provided by the assignment ([Train set](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv) and [Test set](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv))for this project comes originaly from following [paper](http://groupware.les.inf.puc-rio.br/har):  
+*Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. Qualitative Activity Recognition of Weight Lifting Exercises. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human '13) . Stuttgart, Germany: ACM SIGCHI, 2013.*
+
+to build our model we have used following:
+- R version 3.2.3 (2015-12-10),
+- caret_6.0-64 
+- randomForest_4.6-12 caret_6.0-64
+- Windows 10 x64
+
+
+### Prepration  
+We will first load the data from the given url and then will do some data cleansing. That means, we will remove the columns which are not related to training and prediction from both  train and test dataset. afterwards we will remove the columns which do not have any value or have near zero variance. Finally we have 52 features to predict the category "classe".
+```{r loadData,cache=TRUE,echo=TRUE,results='hide'}
+###Loading required packages###
+library(caret)
+library(randomForest)
+set.seed(123) 
+
+### downloading the training and testing set from the url provided by course project
+if(!file.exists("pml-training.csv")) 
+{   download.file(url="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv",destfile ="pml-training.csv")}
+if(!file.exists("pml-testing.csv"))
+{   download.file(url="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv",destfile ="pml-testing.csv")}
+
+### importing the downloaded files.
+input.train<-read.csv("pml-training.csv",na.strings = c("NA","#DIV/0!",""))
+input.test<-read.csv("pml-testing.csv",na.strings = c("NA","#DIV/0!",""))
+
+### removing predication non-releated columns. 
+prPro.train<-input.train[-c(1:7)] #removing 7 first columns, such as X, username, new_window...
+notNaColumns<-names(which(colSums(is.na(prPro.train))<=0)) # Identifing columns which are not empty.
+prPro.train<-prPro.train[notNaColumns]  # select only columns with above condition.
+prPro.validation <-input.test[notNaColumns[notNaColumns!="classe"]] #removing the same columns from test.
+
+### checking if any column has near zero variability
+nzv<-nearZeroVar(prPro.train, saveMetrics=TRUE)
+sum(nzv$nzv) ## it shows that there is no more column removal availble.
+```
+
+
+###Spliting dataset  
+To be able to test our model we will split the training data set into two data set: model.training  and model.testing. We will build our model from the data set model.training and will test our model using model.testing dataset for the accuracy. 
+```{r sliceData,cache=TRUE}
+inTrain<-createDataPartition(y=prPro.train$classe,p = .7,list=FALSE) ##randomly partition data into two data sets ,training and testing
+model.training<-prPro.train[inTrain,]   ##to build the model
+model.testing<-prPro.train[-inTrain,]   ##to test and tune the model
+rbind("Original Train set"=dim(input.train),"Original Test  set"=dim(input.test),Training=dim(model.training),Testing=dim(model.testing)) 
+```
+
+###Explatory Analysis and pre-processing. 
+In This section we will try to get an Insight into data in order to reduce the number of features. To do so we will use pca to extract the most important features which have the most infomration. This will be very usefull when using algorithms such as random forest. Since High number of features causes very tall Tree hence very long execution time. 
+
+```{r preProcess,cache=TRUE}
+model.train.preProc<-preProcess(model.training[,-53],method=c("scale","center","pca")) ## we remove column 53 which is our predicted value. 
+model.train.PC<-predict(model.train.preProc,model.training[,-53])  ## summarizing features value using pca on model.train
+model.testing.PC<-predict(model.train.preProc,model.testing[-53])  ## applying the same to the testing set.
+
+```
+
+##Model Building  
+Due to high accuracy of the random forest algorithm for classification problems, we will use it on this project of the prediction.
+We have also used cross-validation to have better accuracy for the prediction. 
+Why i chosed 10? why not 5, since we have 5 groups.
+
+```{r model,cache=TRUE}
+rfModelFit<-train(model.training$classe ~ ., data=model.train.PC, method="rf", prox=TRUE, trControl = trainControl(method="cv"),number=10,ntree=500)
+mode.testing.predict<-predict(rfModelFit,model.testing.PC)
+print(rfModelFit$finalModel,digits=3)
+```
+
+??rf <- foreach(ntree="rep(250," 4),="" .combine="combine," .packages='randomForest' )="">
+randomForest(x, y, ntree=ntree ,
+
+##Results  
+Now we can see accuracy of our model:
+```{r final,cache=TRUE}
+confMatrix<-confusionMatrix(model.testing$classe,mode.testing.predict);print(confMatrix,digits=3)
+```
+
+This is a good result for the sake of learning from this project hence We will use it as the final mode to predict the validation set( the input.test set).
+To do so we need to first apply pre-process funtion to the validation-set and then predict outcomes.
+
+Regarding *out of sample error* we can sure achieve better accuracy and less error, but it requires a good hardware for tuning and testing multiple models.
+At this point i am satisfied with the result.
+
+##Test (Quiz)
+TO answer course project quiz, we will use the final model to predict the validation-set.
+```{r predictValidation,cache=TRUE}
+validation.PC<-predict(model.train.preProc,prPro.validation) ## first we pre-process our validation set to apply pca.
+predict(rfModelFit,validation.PC)
+```
+
+> trContro<-trainControl(method = "cv")
+> trControl<-trainControl(method = "cv")
+> cl <- makeCluster(detectCores())
+> registerDoParallel(cl)
+> rfModelFit<-train(model.training$classe ~ ., data=model.train.PC, method="rf", prox=TRUE, trControl = trControl,number=5,ntree=500)
+rfModelFit<-train(model.training$classe ~ ., data=model.train.PC, method="rf", prox=TRUE, trControl = trControl,number=5,ntree=500)
+
+
