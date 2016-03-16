@@ -118,22 +118,33 @@ $(document).ready(function () {
 
 <div id="summary" class="section level2">
 <h2>Summary</h2>
-<p>In this Project we will try to predict if a given activity at a specific time is correctly done according. For the classification the the original authours have considered 5 groups A,B,C,D,E which corresponds to the way of doing a specific activity. To build and test the model, we have splited the provided training set to 70%training set and 30% test set. Before we train the model we have used <em>PCA</em> to reduce the number of features.Then We have trained and built the model using the new pre-processed training and random forest algorithm. Finally we have predicted the classe of the activity (A,…,E) for the test set. The Achieved Accuracy for predicting the test set is 97% which is acceptable for the purpose of this project. We could push it further by tuning the parameter to achieve more accuracy but due to lack of a powerfull hardware we will accept current model as final model.</p>
+<p>A couple of researchers wanted to see if they could detect a wrong activity using some sensors information for a particular physical activity.So they classified the overall activities into 5 groups A,B,C,D,E which corresponds to the way of doing a specific activity. In this Course Project we will try to re-produce the same results using different Machine learning methods. To build and test a model, we have splitted the provided training set to 70%training set and 30% test set. Since there has been lots of features in the original set and due to hardware limitations we needed to reduce the features before we train the model. Then We have trained and built the model using the new pre-processed training and random forest algorithm. Finally we have predicted the classe of the activity (A,…,E) for the test set. The Achieved Accuracy for predicting the test set is ~ 97% which is acceptable for the purpose of this project. basically What we did:<br />
+1- remove unused columns<br />
+2- remove summary rows (section 5.1 of the paper)<br />
+3- pre-process/reduce feature using PCA<br />
+4- slicing data to have train,test,validation sets<br />
+5- predict pre-processed train and test set using PCA<br />
+6- train model with random forest algorithm<br />
+7- check accuracy on test set. Optimizing model 8- predicting validation set.</p>
 </div>
 <div id="data" class="section level2">
 <h2>Data</h2>
-<p>The data which is provided by the assignment (<a href="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv">Train set</a> and <a href="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv">Test set</a>)for this project comes originaly from following <a href="http://groupware.les.inf.puc-rio.br/har">paper</a>:<br />
+<p>The data which is provided by the assignment (<a href="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv">Train set</a> and <a href="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv">Test set</a>)for this project comes originally from following <a href="http://groupware.les.inf.puc-rio.br/har">paper</a>:<br />
 <em>Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. Qualitative Activity Recognition of Weight Lifting Exercises. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human ’13) . Stuttgart, Germany: ACM SIGCHI, 2013.</em></p>
-<p>to build our model we have used following: - R version 3.2.3 (2015-12-10), - caret_6.0-64 - randomForest_4.6-12 caret_6.0-64 - Windows 10 x64</p>
+<p>to build our model we have used following:<br />
+- R version 3.2.3 (2015-12-10)<br />
+- caret_6.0-64<br />
+- randomForest_4.6-12 caret_6.0-64<br />
+- OS: Windows 10 x64</p>
+<p>Please note due to bugs under doParallel package also , re-producibility issues on doMC package(it does not support windows), i have decided not to use parallel execution and also reduced the number of trees on random forest algorithm.</p>
 <div id="prepration" class="section level3">
 <h3>Prepration</h3>
-<p>We will first load the data from the given url and then will do some data cleansing. That means, we will remove the columns which are not related to training and prediction from both train and test dataset. afterwards we will remove the columns which do not have any value or have near zero variance. Finally we have 52 features to predict the category “classe”.</p>
+<p>As mentioned before , there are two datasets to work on: train and test set. We will use the <strong>test</strong> set as the <strong>validation</strong> set. We will extract our test set from training set for the purpose of optimization. We will first load the data from the given url and then will do some data cleansing. That means, we will remove the columns which will not be included on prediction from both train and test dataset. Afterwards we will remove the columns which do not have any value or have near zero variance. Finally we have 52 features to predict the category “classe”.</p>
 <pre class="r"><code>###Loading required packages###
-require(caret)
-require(randomForest)
-set.seed(123) 
-
-### downloading the training and testing set from the url provided by course project
+library(caret)
+library(randomForest)
+set.seed(123) </code></pre>
+<pre class="r"><code>### downloading the training and testing set from the url provided by course project
 if(!file.exists(&quot;pml-training.csv&quot;)) 
 {   download.file(url=&quot;https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv&quot;,destfile =&quot;pml-training.csv&quot;)}
 if(!file.exists(&quot;pml-testing.csv&quot;))
@@ -151,15 +162,16 @@ notNaColumns&lt;-names(which(colSums(is.na(prPro.train))&lt;=0)) # Identifing co
 prPro.train&lt;-prPro.train[notNaColumns]  # select only columns with above condition.
 
 
-prPro.validation &lt;-input.test[notNaColumns[notNaColumns!=&quot;classe&quot;]] #removing the same columns from test.
+prPro.validation &lt;-input.test[notNaColumns[notNaColumns!=&quot;classe&quot;]] #removing the same columns from validation set.
 
 ### checking if any column has near zero variability
 nzv&lt;-nearZeroVar(prPro.train, saveMetrics=TRUE)
-sum(nzv$nzv) ## it shows that there is no more column removal availble.</code></pre>
+
+paste(&quot;Number of columns with NA values: &quot; , sum(nzv$nzv))  ## </code></pre>
 </div>
-<div id="spliting-dataset" class="section level3">
-<h3>Spliting dataset</h3>
-<p>To be able to test our model we will split the training data set into two data set: model.training and model.testing. We will build our model from the data set model.training and will test our model using model.testing dataset for the accuracy.</p>
+<div id="splitting-dataset" class="section level3">
+<h3>Splitting dataset</h3>
+<p>To be able to test and optimize our model we will split the training data set into two data set: model.training and model.testing. We will build our model from the data set model.training and will test our model using model.testing dataset for the accuracy.</p>
 <pre class="r"><code>inTrain&lt;-createDataPartition(y=prPro.train$classe,p = .7,list=FALSE) ##randomly partition data into two data sets ,training and testing
 model.training&lt;-prPro.train[inTrain,]   ##to build the model
 model.testing&lt;-prPro.train[-inTrain,]   ##to test and tune the model
@@ -172,10 +184,10 @@ rbind(&quot;Original Train set&quot;=dim(input.train),&quot;Original Test set&qu
 </div>
 <div id="explatory-analysis-and-pre-processing." class="section level3">
 <h3>Explatory Analysis and pre-processing.</h3>
-<p>In This section we will try to get an Insight into data in order to reduce the number of features. Lets see if there is a correlation between features:</p>
+<p>In This section we will try to get an insight into data in order to reduce the number of features. Lets see if there is a correlation between features:</p>
 <pre class="r"><code>findCorrelation(cor(model.training[,-53]),cutoff = .8)</code></pre>
 <pre><code>##  [1] 10  1  9 36  8  2 34 21 25 18</code></pre>
-<p>As shown above there couply of columns which are correlated. To do remove effect of correlated columns we will use pca to extract the most important features which have the most information. Also i should note that, This will be very usefull when using algorithms such as random forest. Since High number of features causes very tall Tree hence very long execution time.</p>
+<p>As shown above there a couple of columns which are correlated. To remove effect of correlated columns, we will use pca to extract the most important features which have the most information. Also i should note that, This will be very useful when using algorithms such as random forest. Since High number of features causes very tall Tree hence very long execution time.</p>
 <pre class="r"><code>model.train.preProc&lt;-preProcess(model.training[,-53],method=c(&quot;scale&quot;,&quot;center&quot;,&quot;pca&quot;)) ## we remove column 53 which is our predicted value. 
 model.train.PC&lt;-predict(model.train.preProc,model.training[,-53])  ## summarizing features value using pca on model.train
 model.testing.PC&lt;-predict(model.train.preProc,model.testing[-53])  ## applying the same to the testing set.
@@ -191,39 +203,24 @@ rbind(&quot;training set&quot;=dim(model.training),&quot;testing set (from input
 <pre><code>## integer(0)</code></pre>
 </div>
 </div>
-<div id="model-building" class="section level2">
-<h2>Model Building</h2>
-<p>Due to high accuracy of the random forest algorithm for classification problems, we will use it on this project of the prediction. We have also used cross-validation to have better accuracy for the prediction. Why i chosed 10? why not 5, since we have 5 groups.</p>
-<pre class="r"><code>trCont&lt;-trainControl(method=&quot;cv&quot;)
+<div id="model-building-with-cross-validation" class="section level2">
+<h2>Model Building with cross-validation</h2>
+<p>Due to high accuracy of the random forest algorithm for classification problems, we will use it on this project of the prediction. We have also used cross-validation to have better accuracy for the prediction. I have tested the algorithm with many different parameters such as ntree=500 ,number=10 or 5. I noticed it does not have much effect on the model accuracy, rather it just increases the execution time. As mentioned above, due to compatibility problem , i am sharing non-parallel execution code which may take longer to execute but will definitely has a result, in contrast to using doMC and doParallel packages, which can throw some exceptions.</p>
+<pre class="r"><code>trCont&lt;-trainControl(method=&quot;cv&quot;) # creating control object for the random forest algorithm.
 
-startTime&lt;-Sys.time()
+startTime&lt;-Sys.time() #for troubleshooting purposes we will capture time.
 
 rfModelFit&lt;-train(model.training$classe ~ ., data=model.train.PC, method=&quot;rf&quot;, prox=TRUE, trControl=trCont,tuneGrid=expand.grid(mtry = 10),number=3,ntree=100) ## fitting the model
 
 endTime&lt;-Sys.time()
 
-mode.testing.predict&lt;-predict(rfModelFit,model.testing.PC)</code></pre>
+model.testing.predict&lt;-predict(rfModelFit,model.testing.PC)</code></pre>
 </div>
 <div id="results" class="section level2">
 <h2>Results</h2>
-<p>Now we can see accuracy of our model:</p>
-<pre class="r"><code>print(rfModelFit$finalModel,digits=3)##showing final model</code></pre>
-<pre><code>## 
-## Call:
-##  randomForest(x = x, y = y, ntree = 100, mtry = param$mtry, proximity = TRUE,      number = 3) 
-##                Type of random forest: classification
-##                      Number of trees: 100
-## No. of variables tried at each split: 10
-## 
-##         OOB estimate of  error rate: 3.06%
-## Confusion matrix:
-##      A    B    C    D    E class.error
-## A 3789   21    9    9    2  0.01070496
-## B   61 2488   42    4    8  0.04417979
-## C    7   36 2268   31    5  0.03365999
-## D    8    3   93 2092    7  0.05038584
-## E    6   20   24   16 2404  0.02672065</code></pre>
-<pre class="r"><code>confMatrix&lt;-confusionMatrix(model.testing$classe,mode.testing.predict);print(confMatrix,digits=3)</code></pre>
+<p>To calculate accuracy and out of sample error we need to calculate confusion matrix:</p>
+<pre class="r"><code>confMatrix&lt;-confusionMatrix(model.testing$classe,model.testing.predict) </code></pre>
+<p>By testing our model on testing set we have achieved 97.4% accuracy and 2.6% out of sample error.</p>
 <pre><code>## Confusion Matrix and Statistics
 ## 
 ##           Reference
@@ -255,7 +252,7 @@ mode.testing.predict&lt;-predict(rfModelFit,model.testing.PC)</code></pre>
 ## Detection Rate          0.281    0.186    0.168    0.159    0.180
 ## Detection Prevalence    0.285    0.193    0.174    0.164    0.184
 ## Balanced Accuracy       0.989    0.979    0.969    0.984    0.995</code></pre>
-<p>This is a good result for the sake of learning from this project hence We will use it as the final mode to predict the validation set( the input.test set). To do so we need to first apply pre-process funtion to the validation-set and then predict outcomes.</p>
+<p>This is a good result for the sake of learning from this project hence We will use it as the final mode to predict the validation set(the input.test set). To do so we need to first apply pre-process function to the validation-set and then predict outcomes.</p>
 <p>Regarding <em>out of sample error</em> we can achieve better accuracy and less out of sample error, but it requires a good hardware for tuning and testing multiple models. At this point i am satisfied with the result.</p>
 </div>
 <div id="test-quiz" class="section level2">
